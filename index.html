@@ -35,20 +35,27 @@
   <!-- Iframe Aplikasi GAS -->
   <iframe src="https://script.google.com/macros/s/AKfycbzgSSp5fFerUAnC-cxNtIcxuZy7d-nDFIDM6SUNXXmigkO3ZMh6Rpja7lY9dZTzXdt7Tw/exec" allowfullscreen></iframe>
 
-  <!-- Prompt/Saran Instalasi Custom -->
-  <div id="install-prompt" class="hidden fixed bottom-4 left-4 right-4 bg-white rounded-xl shadow-2xl border border-gray-100 p-4 transform transition-transform duration-300 translate-y-full z-50">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-4">
-        <!-- Ikon menggunakan URL yang Anda berikan -->
-        <img src="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png" alt="Pdf Toolbox Icon" class="w-12 h-12 rounded-lg shadow-sm border border-gray-100 object-cover">
-        <div>
-          <h3 class="text-sm font-bold text-gray-800">Install Pdf Toolbox</h3>
-          <p class="text-xs text-gray-500">Tambahkan ke layar utama</p>
-        </div>
-      </div>
-      <div class="flex flex-col space-y-2">
-        <button id="install-btn" class="bg-blue-600 text-white text-xs font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-700 transition">Install</button>
-        <button id="close-btn" class="text-gray-400 text-xs font-medium hover:text-gray-600 transition">Nanti</button>
+  <!-- Prompt/Saran Instalasi ala Pop-up E-commerce -->
+  <div id="install-prompt-overlay" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center transition-opacity duration-300 opacity-0">
+    <div id="install-prompt-box" class="bg-white rounded-2xl shadow-2xl p-6 mx-4 w-full max-w-xs transform transition-all duration-300 scale-90 text-center relative">
+      
+      <!-- Tombol Close (X) di pojok -->
+      <button id="close-icon-btn" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 transition">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <!-- Konten Iklan -->
+      <img src="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png" alt="Pdf Toolbox Icon" class="w-20 h-20 mx-auto rounded-2xl shadow-md border border-gray-100 object-cover mb-4">
+      
+      <h3 class="text-xl font-extrabold text-gray-800 mb-2">Install Pdf Toolbox</h3>
+      <p class="text-sm text-gray-500 mb-6 leading-relaxed">Tambahkan ke layar utama untuk akses lebih cepat, tanpa perlu buka browser lagi!</p>
+      
+      <!-- Tombol Aksi (Besar dan Jelas) -->
+      <div class="flex flex-col space-y-3">
+        <button id="install-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition transform hover:-translate-y-0.5">Install Sekarang</button>
+        <button id="close-btn" class="w-full text-gray-400 text-sm font-medium hover:text-gray-600 transition">Mungkin Nanti</button>
       </div>
     </div>
   </div>
@@ -62,7 +69,7 @@
       "name": "Pdf Toolbox",
       "short_name": "Pdf Toolbox",
       "description": "Alat manajemen dan pemrosesan PDF",
-      "start_url": window.location.href, // Otomatis menggunakan URL tempat HTML ini di-host
+      "start_url": window.location.href,
       "display": "standalone",
       "background_color": "#f3f4f6",
       "theme_color": "#2563eb",
@@ -76,7 +83,6 @@
       ]
     };
     
-    // Ubah JSON menjadi Blob URL lalu pasang ke <link rel="manifest">
     const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
     const manifestUrl = URL.createObjectURL(manifestBlob);
     document.getElementById('manifest-link').setAttribute('href', manifestUrl);
@@ -91,13 +97,11 @@
       self.addEventListener('activate', (event) => {
         event.waitUntil(clients.claim());
       });
-      // Minimal fetch handler agar memenuhi syarat instalasi PWA
       self.addEventListener('fetch', (event) => {
         event.respondWith(fetch(event.request).catch(() => new Response('Koneksi terputus')));
       });
     `;
 
-    // Ubah script SW menjadi Blob URL lalu daftarkan
     if ('serviceWorker' in navigator) {
       const swBlob = new Blob([swCode], { type: 'application/javascript' });
       const swUrl = URL.createObjectURL(swBlob);
@@ -108,48 +112,58 @@
     }
 
     // ==========================================
-    // 3. LOGIKA PROMPT IKLAN / INSTALASI
+    // 3. LOGIKA PROMPT IKLAN E-COMMERCE STYLE
     // ==========================================
     let deferredPrompt;
-    const installPromptUI = document.getElementById('install-prompt');
+    const overlay = document.getElementById('install-prompt-overlay');
+    const box = document.getElementById('install-prompt-box');
     const installBtn = document.getElementById('install-btn');
     const closeBtn = document.getElementById('close-btn');
+    const closeIconBtn = document.getElementById('close-icon-btn');
 
-    // Menangkap event sebelum prompt sistem muncul
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault(); // Cegah prompt bawaan muncul otomatis
-      deferredPrompt = e;
-      
-      // Munculkan banner custom kita dari bawah
-      installPromptUI.classList.remove('hidden');
+    // Fungsi untuk memunculkan modal dengan animasi
+    function showModal() {
+      overlay.classList.remove('hidden');
+      // Timeout kecil agar transisi CSS terbaca
       setTimeout(() => {
-        installPromptUI.classList.remove('translate-y-full');
+        overlay.classList.remove('opacity-0');
+        box.classList.remove('scale-90');
+        box.classList.add('scale-100');
       }, 50);
+    }
+
+    // Fungsi untuk menyembunyikan modal dengan animasi
+    function hideModal() {
+      overlay.classList.add('opacity-0');
+      box.classList.remove('scale-100');
+      box.classList.add('scale-90');
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+      }, 300); // Sesuai dengan durasi transisi (300ms)
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      showModal();
     });
 
-    // Ketika tombol install di banner ditekan
     installBtn.addEventListener('click', async () => {
       if (deferredPrompt) {
-        deferredPrompt.prompt(); // Tampilkan prompt instalasi bawaan sistem
+        deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         console.log(`Pilihan user: ${outcome}`);
-        
-        // Sembunyikan banner custom
-        installPromptUI.classList.add('translate-y-full');
-        setTimeout(() => installPromptUI.classList.add('hidden'), 300);
+        hideModal();
         deferredPrompt = null;
       }
     });
 
-    // Ketika tombol "Nanti" ditekan
-    closeBtn.addEventListener('click', () => {
-      installPromptUI.classList.add('translate-y-full');
-      setTimeout(() => installPromptUI.classList.add('hidden'), 300);
-    });
+    // Pasang event penutup ke kedua tombol cancel (Teks dan Ikon X)
+    closeBtn.addEventListener('click', hideModal);
+    closeIconBtn.addEventListener('click', hideModal);
 
-    // Jika aplikasi sudah berhasil diinstal
     window.addEventListener('appinstalled', () => {
-      installPromptUI.classList.add('hidden');
+      hideModal();
       console.log('Pdf Toolbox berhasil diinstal.');
     });
   </script>
