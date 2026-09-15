@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Pdf Toolbox</title>
   
-  <!-- Link ke Manifest PWA -->
-  <link rel="manifest" href="manifest.json">
+  <!-- Tag ini akan diisi URL Manifest secara dinamis oleh JavaScript -->
+  <link id="manifest-link" rel="manifest" href="">
   
-  <!-- Theme Color untuk status bar mobile -->
+  <!-- Theme Color -->
   <meta name="theme-color" content="#2563eb">
   
-  <!-- Tailwind CSS untuk styling prompt instalasi -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
@@ -19,7 +19,7 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      overflow: hidden; /* Mencegah scroll ganda dengan iframe */
+      overflow: hidden;
       background-color: #f3f4f6;
     }
     iframe {
@@ -32,18 +32,18 @@
 </head>
 <body>
 
-  <!-- Iframe Aplikasi Google Apps Script -->
+  <!-- Iframe Aplikasi GAS -->
   <iframe src="https://script.google.com/macros/s/AKfycbzgSSp5fFerUAnC-cxNtIcxuZy7d-nDFIDM6SUNXXmigkO3ZMh6Rpja7lY9dZTzXdt7Tw/exec" allowfullscreen></iframe>
 
-  <!-- Prompt/Iklan Instalasi (Disembunyikan secara default) -->
+  <!-- Prompt/Saran Instalasi Custom -->
   <div id="install-prompt" class="hidden fixed bottom-4 left-4 right-4 bg-white rounded-xl shadow-2xl border border-gray-100 p-4 transform transition-transform duration-300 translate-y-full z-50">
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-4">
-        <!-- Tampilkan Ikon Aplikasi di dalam Banner -->
-        <img src="URL_GAMBAR_ANDA_DISINI" alt="Pdf Toolbox Icon" class="w-12 h-12 rounded-lg shadow-sm">
+        <!-- Ikon menggunakan URL yang Anda berikan -->
+        <img src="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png" alt="Pdf Toolbox Icon" class="w-12 h-12 rounded-lg shadow-sm border border-gray-100 object-cover">
         <div>
           <h3 class="text-sm font-bold text-gray-800">Install Pdf Toolbox</h3>
-          <p class="text-xs text-gray-500">Akses lebih cepat dari layar utama Anda</p>
+          <p class="text-xs text-gray-500">Tambahkan ke layar utama</p>
         </div>
       </div>
       <div class="flex flex-col space-y-2">
@@ -54,59 +54,103 @@
   </div>
 
   <script>
-    // 1. Registrasi Service Worker untuk kapabilitas PWA
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(registration => console.log('ServiceWorker registered'))
-          .catch(err => console.log('ServiceWorker registration failed: ', err));
+    // ==========================================
+    // 1. GENERATE MANIFEST.JSON SECARA DINAMIS
+    // ==========================================
+    const iconUrl = "https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png";
+    const manifest = {
+      "name": "Pdf Toolbox",
+      "short_name": "Pdf Toolbox",
+      "description": "Alat manajemen dan pemrosesan PDF",
+      "start_url": window.location.href, // Otomatis menggunakan URL tempat HTML ini di-host
+      "display": "standalone",
+      "background_color": "#f3f4f6",
+      "theme_color": "#2563eb",
+      "icons": [
+        {
+          "src": iconUrl,
+          "sizes": "192x192 512x512",
+          "type": "image/png",
+          "purpose": "any maskable"
+        }
+      ]
+    };
+    
+    // Ubah JSON menjadi Blob URL lalu pasang ke <link rel="manifest">
+    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+    const manifestUrl = URL.createObjectURL(manifestBlob);
+    document.getElementById('manifest-link').setAttribute('href', manifestUrl);
+
+    // ==========================================
+    // 2. GENERATE SERVICE WORKER SECARA DINAMIS
+    // ==========================================
+    const swCode = `
+      self.addEventListener('install', (event) => {
+        self.skipWaiting();
       });
+      self.addEventListener('activate', (event) => {
+        event.waitUntil(clients.claim());
+      });
+      // Minimal fetch handler agar memenuhi syarat instalasi PWA
+      self.addEventListener('fetch', (event) => {
+        event.respondWith(fetch(event.request).catch(() => new Response('Koneksi terputus')));
+      });
+    `;
+
+    // Ubah script SW menjadi Blob URL lalu daftarkan
+    if ('serviceWorker' in navigator) {
+      const swBlob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(swBlob);
+      
+      navigator.serviceWorker.register(swUrl)
+        .then(() => console.log('Inline Service Worker berhasil didaftarkan.'))
+        .catch(err => console.error('Gagal mendaftar Service Worker:', err));
     }
 
-    // 2. Logika Prompt Instalasi (PWA)
+    // ==========================================
+    // 3. LOGIKA PROMPT IKLAN / INSTALASI
+    // ==========================================
     let deferredPrompt;
     const installPromptUI = document.getElementById('install-prompt');
     const installBtn = document.getElementById('install-btn');
     const closeBtn = document.getElementById('close-btn');
 
+    // Menangkap event sebelum prompt sistem muncul
     window.addEventListener('beforeinstallprompt', (e) => {
-      // Mencegah prompt bawaan Chrome muncul secara otomatis
-      e.preventDefault();
+      e.preventDefault(); // Cegah prompt bawaan muncul otomatis
       deferredPrompt = e;
       
-      // Tampilkan UI Iklan/Saran Instalasi kustom kita dengan animasi
+      // Munculkan banner custom kita dari bawah
       installPromptUI.classList.remove('hidden');
       setTimeout(() => {
         installPromptUI.classList.remove('translate-y-full');
-      }, 100);
+      }, 50);
     });
 
+    // Ketika tombol install di banner ditekan
     installBtn.addEventListener('click', async () => {
       if (deferredPrompt) {
-        // Tampilkan prompt bawaan sistem
-        deferredPrompt.prompt();
-        
-        // Tunggu respon pengguna (menginstal atau membatalkan)
+        deferredPrompt.prompt(); // Tampilkan prompt instalasi bawaan sistem
         const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
+        console.log(`Pilihan user: ${outcome}`);
         
-        // Sembunyikan UI kita setelah interaksi
+        // Sembunyikan banner custom
         installPromptUI.classList.add('translate-y-full');
         setTimeout(() => installPromptUI.classList.add('hidden'), 300);
-        
         deferredPrompt = null;
       }
     });
 
+    // Ketika tombol "Nanti" ditekan
     closeBtn.addEventListener('click', () => {
       installPromptUI.classList.add('translate-y-full');
       setTimeout(() => installPromptUI.classList.add('hidden'), 300);
     });
 
-    // Sembunyikan prompt jika aplikasi sudah berhasil diinstal
+    // Jika aplikasi sudah berhasil diinstal
     window.addEventListener('appinstalled', () => {
       installPromptUI.classList.add('hidden');
-      console.log('Pdf Toolbox was installed.');
+      console.log('Pdf Toolbox berhasil diinstal.');
     });
   </script>
 </body>
