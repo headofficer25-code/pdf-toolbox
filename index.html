@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Pdf Toolbox</title>
   
+  <!-- Favicon untuk Tab Browser -->
+  <link rel="icon" type="image/png" href="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png">
+  
+  <!-- Apple Touch Icon untuk iPhone/iPad -->
+  <link rel="apple-touch-icon" href="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png">
+  
   <!-- Tag ini akan diisi URL Manifest secara dinamis oleh JavaScript -->
   <link id="manifest-link" rel="manifest" href="">
   
@@ -121,10 +127,8 @@
     const closeBtn = document.getElementById('close-btn');
     const closeIconBtn = document.getElementById('close-icon-btn');
 
-    // Fungsi untuk memunculkan modal dengan animasi
     function showModal() {
       overlay.classList.remove('hidden');
-      // Timeout kecil agar transisi CSS terbaca
       setTimeout(() => {
         overlay.classList.remove('opacity-0');
         box.classList.remove('scale-90');
@@ -132,14 +136,13 @@
       }, 50);
     }
 
-    // Fungsi untuk menyembunyikan modal dengan animasi
     function hideModal() {
       overlay.classList.add('opacity-0');
       box.classList.remove('scale-100');
       box.classList.add('scale-90');
       setTimeout(() => {
         overlay.classList.add('hidden');
-      }, 300); // Sesuai dengan durasi transisi (300ms)
+      }, 300);
     }
 
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -158,7 +161,6 @@
       }
     });
 
-    // Pasang event penutup ke kedua tombol cancel (Teks dan Ikon X)
     closeBtn.addEventListener('click', hideModal);
     closeIconBtn.addEventListener('click', hideModal);
 
