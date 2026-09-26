@@ -1,173 +1,609 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Pdf Toolbox</title>
-  
-  <!-- Favicon untuk Tab Browser -->
-  <link rel="icon" type="image/png" href="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png">
-  
-  <!-- Apple Touch Icon untuk iPhone/iPad -->
-  <link rel="apple-touch-icon" href="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png">
-  
-  <!-- Tag ini akan diisi URL Manifest secara dinamis oleh JavaScript -->
-  <link id="manifest-link" rel="manifest" href="">
-  
-  <!-- Theme Color -->
-  <meta name="theme-color" content="#2563eb">
-  
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Pdf Toolbox</title>
 
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      background-color: #f3f4f6;
-    }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-    }
-  </style>
+<!-- ===================== PWA META ===================== -->
+<meta name="theme-color" content="#dc2626">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="PDF Toolbox">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Alat manajemen dan pemrosesan PDF offline">
+
+<!-- Icons -->
+<link rel="icon" type="image/png" href="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png">
+<link rel="apple-touch-icon" href="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png">
+
+<!-- Manifest (diisi JS) -->
+<link id="manifest-link" rel="manifest" href="data:application/manifest+json,%7B%7D">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#f4f7fb;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+
+/* Iframe */
+#app-iframe{width:100%;height:100%;border:0;display:block;background:#f4f7fb}
+
+/* Loading overlay */
+.loading-overlay{position:fixed;inset:0;background:#f4f7fb;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s;pointer-events:none}
+.loading-overlay.hidden{opacity:0}
+.loading-spinner{width:48px;height:48px;border:3px solid #e2e8f0;border-top-color:#dc2626;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{color:#64748b;font-size:.85rem;font-weight:600}
+
+/* Offline badge */
+.offline-badge{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%) translateY(-200%);background:#f59e0b;color:#fff;padding:7px 16px;border-radius:999px;font-size:.75rem;font-weight:800;box-shadow:0 8px 24px rgba(245,158,11,.4);z-index:99999;display:flex;align-items:center;gap:6px;transition:transform .3s cubic-bezier(.4,0,.2,1);pointer-events:none;letter-spacing:.02em}
+.offline-badge.show{transform:translateX(-50%) translateY(0)}
+.offline-badge.online{background:#16a34a;box-shadow:0 8px 24px rgba(22,163,74,.4)}
+.offline-badge svg{width:14px;height:14px;flex-shrink:0}
+
+/* Update available toast */
+.update-toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(200%);background:#0f172a;color:#fff;padding:12px 16px;border-radius:14px;display:flex;align-items:center;gap:12px;box-shadow:0 20px 55px rgba(15,23,42,.4);z-index:99999;transition:transform .35s cubic-bezier(.4,0,.2,1);max-width:calc(100% - 32px);width:max-content}
+.update-toast.show{transform:translateX(-50%) translateY(0)}
+.update-toast .update-text{font-size:.82rem;font-weight:600}
+.update-toast .update-btn{background:#dc2626;color:#fff;border:0;padding:8px 14px;border-radius:9px;font-weight:800;font-size:.78rem;cursor:pointer;transition:.2s;white-space:nowrap}
+.update-toast .update-btn:hover{background:#b91c1c}
+
+/* Install modal overlay */
+.install-overlay{position:fixed;inset:0;background:rgba(15,23,42,.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:100000;display:none;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .3s}
+.install-overlay.show{display:flex}
+.install-overlay.visible{opacity:1}
+
+.install-card{background:#fff;border-radius:24px;padding:26px 22px 22px;max-width:340px;width:100%;box-shadow:0 32px 64px rgba(15,23,42,.35);position:relative;transform:scale(.88) translateY(20px);opacity:0;transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .3s}
+.install-overlay.visible .install-card{transform:scale(1) translateY(0);opacity:1}
+
+.install-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:#f1f5f9;border:0;display:grid;place-items:center;cursor:pointer;transition:.2s;color:#64748b}
+.install-close:hover{background:#e2e8f0;color:#0f172a}
+.install-close svg{width:16px;height:16px}
+
+.install-icon{width:84px;height:84px;border-radius:22px;margin:0 auto 18px;box-shadow:0 12px 28px rgba(220,38,38,.25);overflow:hidden;display:block;background:#dc2626}
+.install-icon img{width:100%;height:100%;object-fit:contain;display:block}
+
+.install-title{font-size:1.35rem;font-weight:800;color:#0f172a;text-align:center;margin-bottom:8px;letter-spacing:-.02em}
+.install-desc{font-size:.88rem;color:#64748b;text-align:center;line-height:1.55;margin-bottom:22px;padding:0 4px}
+
+.install-features{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;padding:14px;background:#f8fafc;border-radius:14px}
+.install-feature{display:flex;align-items:center;gap:10px;font-size:.82rem;color:#334155;font-weight:600}
+.install-feature svg{width:18px;height:18px;color:#16a34a;flex-shrink:0}
+
+.install-actions{display:flex;flex-direction:column;gap:9px}
+.install-btn-primary{width:100%;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border:0;padding:14px;border-radius:14px;font-weight:800;font-size:.95rem;cursor:pointer;transition:.2s;box-shadow:0 8px 20px rgba(220,38,38,.3);letter-spacing:.01em}
+.install-btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(220,38,38,.4)}
+.install-btn-primary:active{transform:translateY(0)}
+.install-btn-secondary{width:100%;background:transparent;color:#94a3b8;border:0;padding:10px;font-size:.82rem;font-weight:600;cursor:pointer;transition:.2s;border-radius:10px}
+.install-btn-secondary:hover{color:#475569;background:#f1f5f9}
+
+/* iOS instruction modal */
+.ios-instructions{display:none;flex-direction:column;gap:14px;margin-bottom:18px;padding:16px;background:#f8fafc;border-radius:14px;font-size:.82rem;color:#334155;line-height:1.5}
+.ios-instructions.show{display:flex}
+.ios-step{display:flex;gap:10px;align-items:flex-start}
+.ios-step-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#dc2626;color:#fff;font-weight:800;font-size:.7rem;display:grid;place-items:center;margin-top:1px}
+.ios-step-text strong{color:#0f172a;font-weight:700}
+
+@media(max-width:380px){
+  .install-card{padding:22px 18px 18px;border-radius:20px}
+  .install-title{font-size:1.2rem}
+  .install-icon{width:72px;height:72px}
+}
+</style>
 </head>
 <body>
 
-  <!-- Iframe Aplikasi GAS -->
-  <iframe src="https://script.google.com/macros/s/AKfycbzgSSp5fFerUAnC-cxNtIcxuZy7d-nDFIDM6SUNXXmigkO3ZMh6Rpja7lY9dZTzXdt7Tw/exec" allowfullscreen></iframe>
+<!-- ===================== LOADING OVERLAY ===================== -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Memuat aplikasi...</div>
+</div>
 
-  <!-- Prompt/Saran Instalasi ala Pop-up E-commerce -->
-  <div id="install-prompt-overlay" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center transition-opacity duration-300 opacity-0">
-    <div id="install-prompt-box" class="bg-white rounded-2xl shadow-2xl p-6 mx-4 w-full max-w-xs transform transition-all duration-300 scale-90 text-center relative">
-      
-      <!-- Tombol Close (X) di pojok -->
-      <button id="close-icon-btn" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 transition">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+<!-- ===================== APP IFRAME ===================== -->
+<iframe
+  id="app-iframe"
+  src="https://script.google.com/macros/s/AKfycbzgSSp5fFerUAnC-cxNtIcxuZy7d-nDFIDM6SUNXXmigkO3ZMh6Rpja7lY9dZTzXdt7Tw/exec"
+  allow="clipboard-read; clipboard-write; web-share; fullscreen; downloads"
+  allowfullscreen>
+</iframe>
+
+<!-- ===================== OFFLINE BADGE ===================== -->
+<div class="offline-badge" id="offline-badge" role="status" aria-live="polite">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="1" y1="1" x2="23" y2="23"></line>
+    <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+    <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+    <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+    <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+    <line x1="12" y1="20" x2="12.01" y2="20"></line>
+  </svg>
+  <span id="offline-text">Mode Offline</span>
+</div>
+
+<!-- ===================== UPDATE TOAST ===================== -->
+<div class="update-toast" id="update-toast">
+  <span class="update-text">Versi baru tersedia</span>
+  <button class="update-btn" type="button" id="update-btn">Refresh</button>
+</div>
+
+<!-- ===================== INSTALL MODAL ===================== -->
+<div class="install-overlay" id="install-overlay">
+  <div class="install-card">
+    <button class="install-close" type="button" id="install-close" aria-label="Tutup">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+
+    <div class="install-icon">
+      <img src="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png" alt="PDF Toolbox">
+    </div>
+
+    <h3 class="install-title">Install PDF Toolbox</h3>
+    <p class="install-desc" id="install-desc">Tambahkan ke layar utama untuk akses lebih cepat, tanpa buka browser lagi!</p>
+
+    <!-- Features (tampil di Android/Desktop) -->
+    <div class="install-features" id="install-features">
+      <div class="install-feature">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
-      </button>
-
-      <!-- Konten Iklan -->
-      <img src="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png" alt="Pdf Toolbox Icon" class="w-20 h-20 mx-auto rounded-2xl shadow-md border border-gray-100 object-cover mb-4">
-      
-      <h3 class="text-xl font-extrabold text-gray-800 mb-2">Install Pdf Toolbox</h3>
-      <p class="text-sm text-gray-500 mb-6 leading-relaxed">Tambahkan ke layar utama untuk akses lebih cepat, tanpa perlu buka browser lagi!</p>
-      
-      <!-- Tombol Aksi (Besar dan Jelas) -->
-      <div class="flex flex-col space-y-3">
-        <button id="install-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transition transform hover:-translate-y-0.5">Install Sekarang</button>
-        <button id="close-btn" class="w-full text-gray-400 text-sm font-medium hover:text-gray-600 transition">Mungkin Nanti</button>
+        <span>Bisa dipakai offline</span>
+      </div>
+      <div class="install-feature">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Akses cepat dari home screen</span>
+      </div>
+      <div class="install-feature">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Tanpa install dari Play Store</span>
       </div>
     </div>
+
+    <!-- iOS Instructions (tampil di iOS) -->
+    <div class="ios-instructions" id="ios-instructions">
+      <div class="ios-step">
+        <span class="ios-step-num">1</span>
+        <span class="ios-step-text">Tap tombol <strong>Share</strong> (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:-2px"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>) di bawah</span>
+      </div>
+      <div class="ios-step">
+        <span class="ios-step-num">2</span>
+        <span class="ios-step-text">Pilih <strong>"Add to Home Screen"</strong></span>
+      </div>
+      <div class="ios-step">
+        <span class="ios-step-num">3</span>
+        <span class="ios-step-text">Tap <strong>"Add"</strong> di kanan atas</span>
+      </div>
+    </div>
+
+    <div class="install-actions">
+      <button class="install-btn-primary" type="button" id="install-btn">Install Sekarang</button>
+      <button class="install-btn-secondary" type="button" id="install-later">Mungkin Nanti</button>
+    </div>
   </div>
+</div>
 
-  <script>
-    // ==========================================
-    // 1. GENERATE MANIFEST.JSON SECARA DINAMIS
-    // ==========================================
-    const iconUrl = "https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png";
-    const manifest = {
-      "name": "Pdf Toolbox",
-      "short_name": "Pdf Toolbox",
-      "description": "Alat manajemen dan pemrosesan PDF",
-      "start_url": window.location.href,
-      "display": "standalone",
-      "background_color": "#f3f4f6",
-      "theme_color": "#2563eb",
-      "icons": [
-        {
-          "src": iconUrl,
-          "sizes": "192x192 512x512",
-          "type": "image/png",
-          "purpose": "any maskable"
-        }
-      ]
-    };
-    
-    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-    const manifestUrl = URL.createObjectURL(manifestBlob);
-    document.getElementById('manifest-link').setAttribute('href', manifestUrl);
+<script>
+(function(){
+'use strict';
 
-    // ==========================================
-    // 2. GENERATE SERVICE WORKER SECARA DINAMIS
-    // ==========================================
-    const swCode = `
-      self.addEventListener('install', (event) => {
-        self.skipWaiting();
-      });
-      self.addEventListener('activate', (event) => {
-        event.waitUntil(clients.claim());
-      });
-      self.addEventListener('fetch', (event) => {
-        event.respondWith(fetch(event.request).catch(() => new Response('Koneksi terputus')));
-      });
-    `;
+/* ============================================================
+   1. SERVICE WORKER — Di-generate via Blob
+   ============================================================
+   SW ini:
+   - Cache file pembungkus (HTML) + Tailwind + icon
+   - Network-first untuk request GAS (biar selalu fresh)
+   - Fallback ke cache saat offline
+   ============================================================ */
 
-    if ('serviceWorker' in navigator) {
-      const swBlob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(swBlob);
-      
-      navigator.serviceWorker.register(swUrl)
-        .then(() => console.log('Inline Service Worker berhasil didaftarkan.'))
-        .catch(err => console.error('Gagal mendaftar Service Worker:', err));
-    }
+var APP_VERSION = '2.0.0';
+var CACHE_NAME = 'pdf-toolbox-wrapper-v' + APP_VERSION;
 
-    // ==========================================
-    // 3. LOGIKA PROMPT IKLAN E-COMMERCE STYLE
-    // ==========================================
-    let deferredPrompt;
-    const overlay = document.getElementById('install-prompt-overlay');
-    const box = document.getElementById('install-prompt-box');
-    const installBtn = document.getElementById('install-btn');
-    const closeBtn = document.getElementById('close-btn');
-    const closeIconBtn = document.getElementById('close-icon-btn');
+var SW_SOURCE = [
+  "var CACHE_NAME = '" + CACHE_NAME + "';",
+  "var PRECACHE_URLS = [",
+  "  './',",
+  "  '" + self.location.href + "',",
+  "  'https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png'",
+  "];",
 
-    function showModal() {
-      overlay.classList.remove('hidden');
-      setTimeout(() => {
-        overlay.classList.remove('opacity-0');
-        box.classList.remove('scale-90');
-        box.classList.add('scale-100');
-      }, 50);
-    }
+  // INSTALL
+  "self.addEventListener('install', function(event){",
+  "  event.waitUntil(",
+  "    caches.open(CACHE_NAME).then(function(cache){",
+  "      return Promise.all(PRECACHE_URLS.map(function(url){",
+  "        return cache.add(url).catch(function(err){ console.warn('[SW] Skip:', url, err.message); });",
+  "      }));",
+  "    }).then(function(){ return self.skipWaiting(); })",
+  "  );",
+  "});",
 
-    function hideModal() {
-      overlay.classList.add('opacity-0');
-      box.classList.remove('scale-100');
-      box.classList.add('scale-90');
-      setTimeout(() => {
-        overlay.classList.add('hidden');
-      }, 300);
-    }
+  // ACTIVATE
+  "self.addEventListener('activate', function(event){",
+  "  event.waitUntil(",
+  "    caches.keys().then(function(keys){",
+  "      return Promise.all(",
+  "        keys.filter(function(k){ return k.indexOf('pdf-toolbox-wrapper-') === 0 && k !== CACHE_NAME; })",
+  "            .map(function(k){ return caches.delete(k); })",
+  "      );",
+  "    }).then(function(){ return self.clients.claim(); })",
+  "  );",
+  "});",
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      showModal();
-    });
+  // FETCH
+  "self.addEventListener('fetch', function(event){",
+  "  var request = event.request;",
+  "  if (request.method !== 'GET') return;",
+  "  var url = request.url;",
 
-    installBtn.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`Pilihan user: ${outcome}`);
-        hideModal();
-        deferredPrompt = null;
+  // Skip GAS iframe requests — biarkan langsung network
+  "  if (url.indexOf('script.google.com') !== -1 || url.indexOf('googleusercontent.com') !== -1) {",
+  "    event.respondWith(",
+  "      fetch(request).catch(function(){",
+  "        return new Response(",
+  "          '<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Offline</title>' +",
+  "          '<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f4f7fb;color:#0f172a;text-align:center;padding:20px}div{max-width:400px}h1{font-size:1.5rem;margin-bottom:12px}p{color:#64748b;line-height:1.6;font-size:.9rem}button{margin-top:20px;padding:12px 24px;background:#dc2626;color:#fff;border:0;border-radius:10px;font-weight:700;cursor:pointer}</style>' +",
+  "          '</head><body><div>' +",
+  "          '<h1>Aplikasi Butuh Internet</h1>' +",
+  "          '<p>PDF Toolbox membutuhkan koneksi internet untuk pertama kali buka. Setelah itu bisa dipakai offline.</p>' +",
+  "          '<button onclick=\"location.reload()\">Coba Lagi</button>' +",
+  "          '</div></body></html>',",
+  "          { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }",
+  "        );",
+  "      })",
+  "    );",
+  "    return;",
+  "  }",
+
+  // Cache-first untuk asset statis
+  "  event.respondWith(",
+  "    caches.match(request).then(function(cached){",
+  "      if (cached) {",
+  "        // Update di background (stale-while-revalidate)",
+  "        fetch(request).then(function(res){",
+  "          if (res && res.status === 200 && res.type !== 'opaque') {",
+  "            caches.open(CACHE_NAME).then(function(c){ c.put(request, res.clone()); });",
+  "          }",
+  "        }).catch(function(){});",
+  "        return cached;",
+  "      }",
+  "      return fetch(request).then(function(res){",
+  "        if (!res || res.status !== 200 || res.type === 'opaque') return res;",
+  "        var clone = res.clone();",
+  "        caches.open(CACHE_NAME).then(function(c){ c.put(request, clone); });",
+  "        return res;",
+  "      }).catch(function(){",
+  "        return caches.match(request);",
+  "      });",
+  "    })",
+  "  );",
+  "});",
+
+  // Handle update message
+  "self.addEventListener('message', function(event){",
+  "  if (event.data && event.data.type === 'SKIP_WAITING') {",
+  "    self.skipWaiting();",
+  "  }",
+  "});"
+].join('\n');
+
+/* ============================================================
+   2. MANIFEST — Di-generate via Blob
+   ============================================================ */
+
+function createManifest() {
+  var manifest = {
+    name: 'PDF Toolbox',
+    short_name: 'PDF Toolbox',
+    description: 'Alat manajemen dan pemrosesan PDF offline',
+    start_url: './',
+    scope: './',
+    display: 'standalone',
+    orientation: 'any',
+    background_color: '#f4f7fb',
+    theme_color: '#dc2626',
+    lang: 'id',
+    icons: [
+      {
+        src: 'https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any'
+      },
+      {
+        src: 'https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any maskable'
       }
-    });
+    ]
+  };
 
-    closeBtn.addEventListener('click', hideModal);
-    closeIconBtn.addEventListener('click', hideModal);
+  var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  var url = URL.createObjectURL(blob);
+  var link = document.getElementById('manifest-link');
+  if (link) link.setAttribute('href', url);
+}
 
-    window.addEventListener('appinstalled', () => {
-      hideModal();
-      console.log('Pdf Toolbox berhasil diinstal.');
-    });
-  </script>
+/* ============================================================
+   3. SERVICE WORKER REGISTRATION
+   ============================================================ */
+
+var swRegistration = null;
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[PWA] Service Worker tidak didukung browser ini');
+    return;
+  }
+
+  try {
+    var blob = new Blob([SW_SOURCE], { type: 'application/javascript' });
+    var swUrl = URL.createObjectURL(blob);
+
+    navigator.serviceWorker.register(swUrl, { scope: './' })
+      .then(function(reg) {
+        swRegistration = reg;
+        console.log('[PWA] Service Worker terdaftar');
+
+        // Watch for updates
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showUpdateToast();
+            }
+          });
+        });
+      })
+      .catch(function(err) {
+        console.warn('[PWA] SW registration gagal (normal di GAS):', err.message);
+      });
+  } catch (err) {
+    console.warn('[PWA] SW setup error:', err);
+  }
+}
+
+/* ============================================================
+   4. INSTALL PROMPT (Android/Desktop)
+   ============================================================ */
+
+var deferredPrompt = null;
+var installOverlay = document.getElementById('install-overlay');
+var installBtn = document.getElementById('install-btn');
+var installClose = document.getElementById('install-close');
+var installLater = document.getElementById('install-later');
+var installDesc = document.getElementById('install-desc');
+var installFeatures = document.getElementById('install-features');
+var iosInstructions = document.getElementById('ios-instructions');
+
+var INSTALL_DISMISS_KEY = 'pdf_toolbox_install_dismissed_v2';
+var DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 hari
+
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.navigator.standalone === true;
+}
+
+function wasRecentlyDismissed() {
+  try {
+    var dismissed = localStorage.getItem(INSTALL_DISMISS_KEY);
+    if (!dismissed) return false;
+    var ts = parseInt(dismissed, 10);
+    return Date.now() - ts < DISMISS_DURATION;
+  } catch (e) { return false; }
+}
+
+function markDismissed() {
+  try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) {}
+}
+
+function showInstallModal() {
+  if (!installOverlay) return;
+  installOverlay.classList.add('show');
+  requestAnimationFrame(function() {
+    installOverlay.classList.add('visible');
+  });
+}
+
+function hideInstallModal() {
+  if (!installOverlay) return;
+  installOverlay.classList.remove('visible');
+  setTimeout(function() {
+    installOverlay.classList.remove('show');
+  }, 300);
+}
+
+// Show iOS instructions on iOS
+if (isIOS()) {
+  if (installFeatures) installFeatures.style.display = 'none';
+  if (iosInstructions) iosInstructions.classList.add('show');
+  if (installDesc) installDesc.textContent = 'Tambahkan ke layar utama untuk akses lebih cepat:';
+  if (installBtn) installBtn.textContent = 'Mengerti';
+}
+
+// Catch install prompt (Android/Desktop Chrome)
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (isStandalone() || wasRecentlyDismissed()) return;
+  setTimeout(function() { showInstallModal(); }, 2500);
+});
+
+// Install button
+if (installBtn) {
+  installBtn.addEventListener('click', async function() {
+    if (isIOS()) {
+      hideInstallModal();
+      return;
+    }
+    if (!deferredPrompt) {
+      // Fallback kalau prompt tidak tersedia
+      alert('Buka menu browser (⋮) → "Install App" atau "Tambahkan ke Home Screen"');
+      hideInstallModal();
+      return;
+    }
+    try {
+      deferredPrompt.prompt();
+      var choice = await deferredPrompt.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        console.log('[PWA] Install diterima');
+      } else {
+        markDismissed();
+      }
+    } catch (err) {
+      console.warn('[PWA] Install error:', err);
+    }
+    deferredPrompt = null;
+    hideInstallModal();
+  });
+}
+
+if (installClose) installClose.addEventListener('click', function() {
+  markDismissed();
+  hideInstallModal();
+});
+
+if (installLater) installLater.addEventListener('click', function() {
+  markDismissed();
+  hideInstallModal();
+});
+
+// Tap overlay background
+if (installOverlay) {
+  installOverlay.addEventListener('click', function(e) {
+    if (e.target === installOverlay) {
+      markDismissed();
+      hideInstallModal();
+    }
+  });
+}
+
+// Installed event
+window.addEventListener('appinstalled', function() {
+  console.log('[PWA] Aplikasi berhasil di-install');
+  hideInstallModal();
+  deferredPrompt = null;
+});
+
+// iOS: tampilkan modal otomatis setelah 3 detik kalau bukan standalone & belum dismissed
+if (isIOS() && !isStandalone() && !wasRecentlyDismissed()) {
+  setTimeout(function() { showInstallModal(); }, 3000);
+}
+
+/* ============================================================
+   5. OFFLINE / ONLINE DETECTION
+   ============================================================ */
+
+var offlineBadge = document.getElementById('offline-badge');
+var offlineText = document.getElementById('offline-text');
+var badgeTimeout = null;
+
+function showOfflineBadge(isOnline) {
+  if (!offlineBadge) return;
+  if (badgeTimeout) clearTimeout(badgeTimeout);
+
+  if (isOnline) {
+    offlineBadge.classList.add('online');
+    offlineText.textContent = 'Online Kembali';
+  } else {
+    offlineBadge.classList.remove('online');
+    offlineText.textContent = 'Mode Offline';
+  }
+
+  offlineBadge.classList.add('show');
+
+  badgeTimeout = setTimeout(function() {
+    offlineBadge.classList.remove('show');
+  }, isOnline ? 2500 : 4000);
+}
+
+window.addEventListener('online', function() { showOfflineBadge(true); });
+window.addEventListener('offline', function() { showOfflineBadge(false); });
+
+if (!navigator.onLine) {
+  setTimeout(function() { showOfflineBadge(false); }, 1500);
+}
+
+/* ============================================================
+   6. UPDATE TOAST
+   ============================================================ */
+
+var updateToast = document.getElementById('update-toast');
+var updateBtn = document.getElementById('update-btn');
+
+function showUpdateToast() {
+  if (updateToast) updateToast.classList.add('show');
+}
+
+if (updateBtn) {
+  updateBtn.addEventListener('click', function() {
+    if (swRegistration && swRegistration.waiting) {
+      swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+    setTimeout(function() { window.location.reload(); }, 300);
+  });
+}
+
+/* ============================================================
+   7. IFRAME LOADING HANDLER
+   ============================================================ */
+
+var iframe = document.getElementById('app-iframe');
+var loadingOverlay = document.getElementById('loading-overlay');
+var loadingText = document.getElementById('loading-text');
+var loadTimer = null;
+
+function hideLoading() {
+  if (!loadingOverlay) return;
+  loadingOverlay.classList.add('hidden');
+  setTimeout(function() {
+    if (loadingOverlay) loadingOverlay.style.display = 'none';
+  }, 500);
+}
+
+if (iframe) {
+  // Timeout fallback — sembunyikan loading setelah 8 detik meski iframe belum load
+  loadTimer = setTimeout(function() {
+    if (loadingText) loadingText.textContent = 'Masih memuat...';
+  }, 3000);
+
+  iframe.addEventListener('load', function() {
+    if (loadTimer) clearTimeout(loadTimer);
+    hideLoading();
+  });
+
+  // Max loading timeout: 12 detik
+  setTimeout(hideLoading, 12000);
+}
+
+/* ============================================================
+   8. INIT
+   ============================================================ */
+
+function init() {
+  createManifest();
+  registerServiceWorker();
+  console.log('[PWA] Pembungkus v' + APP_VERSION + ' siap');
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init, { once: true });
+} else {
+  init();
+}
+
+})();
+</script>
 </body>
 </html>
