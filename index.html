@@ -27,12 +27,60 @@ html,body{height:100%;overflow:hidden;background:#f4f7fb;font-family:Inter,ui-sa
 /* Iframe */
 #app-iframe{width:100%;height:100%;border:0;display:block;background:#f4f7fb}
 
-/* Loading overlay */
-.loading-overlay{position:fixed;inset:0;background:#f4f7fb;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s;pointer-events:none}
+/* Loading overlay — dengan logo PDF Toolbox */
+.loading-overlay{
+  position:fixed;
+  inset:0;
+  background:#f4f7fb;
+  z-index:9999;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:24px;
+  transition:opacity .4s;
+  pointer-events:none;
+  padding:20px;
+}
 .loading-overlay.hidden{opacity:0}
-.loading-spinner{width:48px;height:48px;border:3px solid #e2e8f0;border-top-color:#dc2626;border-radius:50%;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-text{color:#64748b;font-size:.85rem;font-weight:600}
+
+/* Logo PDF Toolbox — tampil natural, responsif, floating animation */
+.loading-logo{
+  width:clamp(120px, 28vw, 200px);
+  height:auto;
+  max-width:80vw;
+  object-fit:contain;
+  display:block;
+  filter:drop-shadow(0 20px 35px rgba(220,38,38,.25));
+  animation:logoFloat 2.2s ease-in-out infinite;
+  user-select:none;
+  pointer-events:none;
+  -webkit-user-select:none;
+}
+
+@keyframes logoFloat{
+  0%,100%{transform:translateY(0) scale(1);filter:drop-shadow(0 20px 35px rgba(220,38,38,.25))}
+  50%{transform:translateY(-10px) scale(1.03);filter:drop-shadow(0 28px 45px rgba(220,38,38,.35))}
+}
+
+.loading-text{
+  color:#64748b;
+  font-size:.88rem;
+  font-weight:600;
+  letter-spacing:.02em;
+  animation:textPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes textPulse{
+  0%,100%{opacity:.65}
+  50%{opacity:1}
+}
+
+/* Responsive — logo lebih kecil di layar sangat kecil */
+@media(max-width:380px){
+  .loading-logo{width:clamp(100px, 30vw, 150px)}
+  .loading-text{font-size:.82rem}
+}
 
 /* Offline badge */
 .offline-badge{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%) translateY(-200%);background:#f59e0b;color:#fff;padding:7px 16px;border-radius:999px;font-size:.75rem;font-weight:800;box-shadow:0 8px 24px rgba(245,158,11,.4);z-index:99999;display:flex;align-items:center;gap:6px;transition:transform .3s cubic-bezier(.4,0,.2,1);pointer-events:none;letter-spacing:.02em}
@@ -93,8 +141,14 @@ html,body{height:100%;overflow:hidden;background:#f4f7fb;font-family:Inter,ui-sa
 <body>
 
 <!-- ===================== LOADING OVERLAY ===================== -->
+<!-- ===================== LOADING OVERLAY ===================== -->
 <div class="loading-overlay" id="loading-overlay">
-  <div class="loading-spinner"></div>
+  <img
+    class="loading-logo"
+    src="https://cdn.phototourl.com/free/2026-09-15-9150f100-1206-4587-85bb-6716981d0b9f.png"
+    alt="PDF Toolbox"
+    loading="eager"
+    decoding="async">
   <div class="loading-text" id="loading-text">Memuat aplikasi...</div>
 </div>
 
