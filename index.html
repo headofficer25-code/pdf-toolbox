@@ -27,7 +27,9 @@ html,body{height:100%;overflow:hidden;background:#f4f7fb;font-family:Inter,ui-sa
 /* Iframe */
 #app-iframe{width:100%;height:100%;border:0;display:block;background:#f4f7fb}
 
-/* Loading overlay — dengan logo PDF Toolbox */
+/* ============================================================
+   LOADING OVERLAY — icon full, tidak terkurung
+   ============================================================ */
 .loading-overlay{
   position:fixed;
   inset:0;
@@ -44,13 +46,17 @@ html,body{height:100%;overflow:hidden;background:#f4f7fb;font-family:Inter,ui-sa
 }
 .loading-overlay.hidden{opacity:0}
 
-/* Logo PDF Toolbox — tampil natural, responsif, floating animation */
+/* Icon utama — FULL, tidak terpotong, tidak terkurung lingkaran */
 .loading-logo{
-  width:clamp(120px, 28vw, 200px);
+  width:clamp(140px, 32vw, 220px);
   height:auto;
-  max-width:80vw;
+  max-width:85vw;
   object-fit:contain;
   display:block;
+  background:transparent;
+  border:none;
+  border-radius:0;
+  padding:0;
   filter:drop-shadow(0 20px 35px rgba(220,38,38,.25));
   animation:logoFloat 2.2s ease-in-out infinite;
   user-select:none;
@@ -76,9 +82,8 @@ html,body{height:100%;overflow:hidden;background:#f4f7fb;font-family:Inter,ui-sa
   50%{opacity:1}
 }
 
-/* Responsive — logo lebih kecil di layar sangat kecil */
 @media(max-width:380px){
-  .loading-logo{width:clamp(100px, 30vw, 150px)}
+  .loading-logo{width:clamp(120px, 34vw, 180px)}
   .loading-text{font-size:.82rem}
 }
 
@@ -107,8 +112,24 @@ html,body{height:100%;overflow:hidden;background:#f4f7fb;font-family:Inter,ui-sa
 .install-close:hover{background:#e2e8f0;color:#0f172a}
 .install-close svg{width:16px;height:16px}
 
-.install-icon{width:84px;height:84px;border-radius:22px;margin:0 auto 18px;box-shadow:0 12px 28px rgba(220,38,38,.25);overflow:hidden;display:block;background:#dc2626}
-.install-icon img{width:100%;height:100%;object-fit:contain;display:block}
+/* Icon install modal — FULL, tanpa background merah yang mengurung */
+.install-icon{
+  width:110px;
+  height:110px;
+  border-radius:0;
+  margin:0 auto 18px;
+  box-shadow:none;
+  overflow:visible;
+  display:block;
+  background:transparent;
+}
+.install-icon img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+  filter:drop-shadow(0 12px 28px rgba(220,38,38,.25));
+}
 
 .install-title{font-size:1.35rem;font-weight:800;color:#0f172a;text-align:center;margin-bottom:8px;letter-spacing:-.02em}
 .install-desc{font-size:.88rem;color:#64748b;text-align:center;line-height:1.55;margin-bottom:22px;padding:0 4px}
@@ -134,13 +155,12 @@ html,body{height:100%;overflow:hidden;background:#f4f7fb;font-family:Inter,ui-sa
 @media(max-width:380px){
   .install-card{padding:22px 18px 18px;border-radius:20px}
   .install-title{font-size:1.2rem}
-  .install-icon{width:72px;height:72px}
+  .install-icon{width:96px;height:96px}
 }
 </style>
 </head>
 <body>
 
-<!-- ===================== LOADING OVERLAY ===================== -->
 <!-- ===================== LOADING OVERLAY ===================== -->
 <div class="loading-overlay" id="loading-overlay">
   <img
@@ -197,7 +217,6 @@ html,body{height:100%;overflow:hidden;background:#f4f7fb;font-family:Inter,ui-sa
     <h3 class="install-title">Install PDF Toolbox</h3>
     <p class="install-desc" id="install-desc">Tambahkan ke layar utama untuk akses lebih cepat, tanpa buka browser lagi!</p>
 
-    <!-- Features (tampil di Android/Desktop) -->
     <div class="install-features" id="install-features">
       <div class="install-feature">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -219,7 +238,6 @@ html,body{height:100%;overflow:hidden;background:#f4f7fb;font-family:Inter,ui-sa
       </div>
     </div>
 
-    <!-- iOS Instructions (tampil di iOS) -->
     <div class="ios-instructions" id="ios-instructions">
       <div class="ios-step">
         <span class="ios-step-num">1</span>
@@ -248,14 +266,9 @@ html,body{height:100%;overflow:hidden;background:#f4f7fb;font-family:Inter,ui-sa
 
 /* ============================================================
    1. SERVICE WORKER — Di-generate via Blob
-   ============================================================
-   SW ini:
-   - Cache file pembungkus (HTML) + Tailwind + icon
-   - Network-first untuk request GAS (biar selalu fresh)
-   - Fallback ke cache saat offline
    ============================================================ */
 
-var APP_VERSION = '2.0.0';
+var APP_VERSION = '2.1.0';
 var CACHE_NAME = 'pdf-toolbox-wrapper-v' + APP_VERSION;
 
 var SW_SOURCE = [
@@ -266,7 +279,6 @@ var SW_SOURCE = [
   "  'https://cdn.phototourl.com/member/2026-10-12-bc0c38c2-3a1c-4281-9187-c58f2e604f0d.png'",
   "];",
 
-  // INSTALL
   "self.addEventListener('install', function(event){",
   "  event.waitUntil(",
   "    caches.open(CACHE_NAME).then(function(cache){",
@@ -277,7 +289,6 @@ var SW_SOURCE = [
   "  );",
   "});",
 
-  // ACTIVATE
   "self.addEventListener('activate', function(event){",
   "  event.waitUntil(",
   "    caches.keys().then(function(keys){",
@@ -289,13 +300,11 @@ var SW_SOURCE = [
   "  );",
   "});",
 
-  // FETCH
   "self.addEventListener('fetch', function(event){",
   "  var request = event.request;",
   "  if (request.method !== 'GET') return;",
   "  var url = request.url;",
 
-  // Skip GAS iframe requests — biarkan langsung network
   "  if (url.indexOf('script.google.com') !== -1 || url.indexOf('googleusercontent.com') !== -1) {",
   "    event.respondWith(",
   "      fetch(request).catch(function(){",
@@ -314,11 +323,9 @@ var SW_SOURCE = [
   "    return;",
   "  }",
 
-  // Cache-first untuk asset statis
   "  event.respondWith(",
   "    caches.match(request).then(function(cached){",
   "      if (cached) {",
-  "        // Update di background (stale-while-revalidate)",
   "        fetch(request).then(function(res){",
   "          if (res && res.status === 200 && res.type !== 'opaque') {",
   "            caches.open(CACHE_NAME).then(function(c){ c.put(request, res.clone()); });",
@@ -338,7 +345,6 @@ var SW_SOURCE = [
   "  );",
   "});",
 
-  // Handle update message
   "self.addEventListener('message', function(event){",
   "  if (event.data && event.data.type === 'SKIP_WAITING') {",
   "    self.skipWaiting();",
@@ -405,7 +411,6 @@ function registerServiceWorker() {
         swRegistration = reg;
         console.log('[PWA] Service Worker terdaftar');
 
-        // Watch for updates
         reg.addEventListener('updatefound', function() {
           var newWorker = reg.installing;
           if (!newWorker) return;
@@ -438,7 +443,7 @@ var installFeatures = document.getElementById('install-features');
 var iosInstructions = document.getElementById('ios-instructions');
 
 var INSTALL_DISMISS_KEY = 'pdf_toolbox_install_dismissed_v2';
-var DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 hari
+var DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000;
 
 function isIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -478,7 +483,6 @@ function hideInstallModal() {
   }, 300);
 }
 
-// Show iOS instructions on iOS
 if (isIOS()) {
   if (installFeatures) installFeatures.style.display = 'none';
   if (iosInstructions) iosInstructions.classList.add('show');
@@ -486,7 +490,6 @@ if (isIOS()) {
   if (installBtn) installBtn.textContent = 'Mengerti';
 }
 
-// Catch install prompt (Android/Desktop Chrome)
 window.addEventListener('beforeinstallprompt', function(e) {
   e.preventDefault();
   deferredPrompt = e;
@@ -494,7 +497,6 @@ window.addEventListener('beforeinstallprompt', function(e) {
   setTimeout(function() { showInstallModal(); }, 2500);
 });
 
-// Install button
 if (installBtn) {
   installBtn.addEventListener('click', async function() {
     if (isIOS()) {
@@ -502,7 +504,6 @@ if (installBtn) {
       return;
     }
     if (!deferredPrompt) {
-      // Fallback kalau prompt tidak tersedia
       alert('Buka menu browser (⋮) → "Install App" atau "Tambahkan ke Home Screen"');
       hideInstallModal();
       return;
@@ -533,7 +534,6 @@ if (installLater) installLater.addEventListener('click', function() {
   hideInstallModal();
 });
 
-// Tap overlay background
 if (installOverlay) {
   installOverlay.addEventListener('click', function(e) {
     if (e.target === installOverlay) {
@@ -543,14 +543,12 @@ if (installOverlay) {
   });
 }
 
-// Installed event
 window.addEventListener('appinstalled', function() {
   console.log('[PWA] Aplikasi berhasil di-install');
   hideInstallModal();
   deferredPrompt = null;
 });
 
-// iOS: tampilkan modal otomatis setelah 3 detik kalau bukan standalone & belum dismissed
 if (isIOS() && !isStandalone() && !wasRecentlyDismissed()) {
   setTimeout(function() { showInstallModal(); }, 3000);
 }
@@ -627,7 +625,6 @@ function hideLoading() {
 }
 
 if (iframe) {
-  // Timeout fallback — sembunyikan loading setelah 8 detik meski iframe belum load
   loadTimer = setTimeout(function() {
     if (loadingText) loadingText.textContent = 'Masih memuat...';
   }, 3000);
@@ -637,7 +634,6 @@ if (iframe) {
     hideLoading();
   });
 
-  // Max loading timeout: 12 detik
   setTimeout(hideLoading, 12000);
 }
 
